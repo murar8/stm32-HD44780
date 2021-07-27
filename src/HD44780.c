@@ -4,7 +4,7 @@
 static const uint8_t delay_loop_cycles = 9;
 
 // [ns] Amount of time taken by one delay loop.
-static uint8_t delay_loop_time = 0;
+static uint32_t delay_loop_time = 0;
 
 /*
  * Initialize the delay functionality by calculating the time constants in nanoseconds based on the current clock.
@@ -148,7 +148,7 @@ static inline uint8_t HD44780_get_address(HD44780 *lcd)
 static inline uint8_t HD44780_get_current_line(HD44780 *lcd)
 {
     uint8_t address = HD44780_get_address(lcd);
-    return lcd->two_lines && address >= HD44780_SECOND_LINE_ADDRESS;
+    return !lcd->single_line && address >= HD44780_SECOND_LINE_ADDRESS;
 }
 
 /*
@@ -272,7 +272,7 @@ static inline void HD44780_write_data(HD44780 *lcd, uint8_t byte)
     HD44780_write_byte(lcd, 1, byte);
 }
 
-void HD44780_init(HD44780 *lcd, HD44780_Config *config)
+void HD44780_init(HD44780 *lcd)
 {
     delay_init();
 
@@ -301,24 +301,27 @@ void HD44780_init(HD44780 *lcd, HD44780_Config *config)
     }
 
     uint8_t flg_data_len = lcd->interface_8_bit ? HD44780_FLG_DATA_LEN_8BIT : HD44780_FLG_DATA_LEN_4BIT;
-    uint8_t flg_line_qty = lcd->two_lines ? HD44780_FLG_2_LINE : HD44780_FLG_1_LINE;
+    uint8_t flg_line_qty = lcd->single_line ? HD44780_FLG_1_LINE : HD44780_FLG_2_LINE;
     uint8_t flg_font_size = lcd->font_5x10 ? HD44780_FLG_FONT_5X10 : HD44780_FLG_FONT_5X8;
 
     HD44780_write_instruction(lcd, HD44780_CMD_FUNCTION_SET | flg_data_len | flg_line_qty | flg_font_size);
-    HD44780_update_config(lcd, config);
-    HD44780_clear(lcd);
+    HD44780_write_instruction(lcd, HD44780_CMD_DISPLAY_CONTROL);
+    HD44780_write_instruction(lcd, HD44780_CMD_CLEAR_DISPLAY);
+    HD44780_write_instruction(lcd, HD44780_CMD_ENTRY_MODE_SET | HD44780_FLG_DISPLAY_NOSHIFT | HD44780_FLG_DIR_LTR);
+    HD44780_write_instruction(lcd, HD44780_CMD_DISPLAY_CONTROL | HD44780_FLG_DISPLAY_ON | HD44780_FLG_CURSOR_OFF |
+                                       HD44780_FLG_BLINK_OFF);
 }
 
-void HD44780_update_config(HD44780 *lcd, HD44780_Config *config)
+void HD44780_configure(HD44780 *lcd, HD44780_Config *config)
 {
-    uint8_t flg_display_en = config->enable_display ? HD44780_FLG_DISPLAY_ON : HD44780_FLG_DISPLAY_OFF;
+    uint8_t flg_display_en = config->disable_display ? HD44780_FLG_DISPLAY_OFF : HD44780_FLG_DISPLAY_ON;
     uint8_t flg_cursor_en = config->enable_cursor ? HD44780_FLG_CURSOR_ON : HD44780_FLG_CURSOR_OFF;
     uint8_t flg_blink_en = config->enable_blink ? HD44780_FLG_BLINK_ON : HD44780_FLG_BLINK_OFF;
-    uint8_t flg_shift_entity = config->shift_display ? HD44780_FLG_SHIFT_DISPLAY : HD44780_FLG_SHIFT_CURSOR;
-    uint8_t flg_shift_dir = config->shift_rtl ? HD44780_FLG_SHIFT_RTL : HD44780_FLG_SHIFT_LTR;
+    uint8_t flg_shift_entity = config->shift_display ? HD44780_FLG_DISPLAY_SHIFT : HD44780_FLG_DISPLAY_NOSHIFT;
+    uint8_t flg_shift_dir = config->shift_rtl ? HD44780_FLG_DIR_RTL : HD44780_FLG_DIR_LTR;
 
-    HD44780_write_instruction(lcd, HD44780_CMD_DISPLAY_CONTROL | flg_display_en | flg_cursor_en | flg_blink_en);
     HD44780_write_instruction(lcd, HD44780_CMD_ENTRY_MODE_SET | flg_shift_entity | flg_shift_dir);
+    HD44780_write_instruction(lcd, HD44780_CMD_DISPLAY_CONTROL | flg_display_en | flg_cursor_en | flg_blink_en);
 }
 
 void HD44780_clear(HD44780 *lcd)
@@ -326,14 +329,29 @@ void HD44780_clear(HD44780 *lcd)
     HD44780_write_instruction(lcd, HD44780_CMD_CLEAR_DISPLAY);
 }
 
-void HD44780_goto(HD44780 *lcd, uint8_t row, uint8_t column)
+void HD44780_return_home(HD44780 *lcd)
+{
+    HD44780_write_instruction(lcd, HD44780_CMD_RETURN_HOME);
+}
+
+void HD44780_cursor_to(HD44780 *lcd, uint8_t row, uint8_t column)
 {
     // When the display is configured for single line operation, the address range is 0x00 to 0x4F.
     // For two line operation the address range is 0x00 to 0x27 for the first line,
     // and 0x40 to 0x67 for the second line.
-    uint8_t initial_addr = column % 2 && lcd->two_lines ? HD44780_SECOND_LINE_ADDRESS : 0;
+    uint8_t initial_addr = column % 2 && !lcd->single_line ? HD44780_SECOND_LINE_ADDRESS : 0;
     uint8_t addr = initial_addr + row;
     HD44780_write_instruction(lcd, HD44780_CMD_SET_DDRAM_ADDRESS | addr);
+}
+
+void HD44780_shift_display(HD44780 *lcd, int8_t n)
+{
+    uint8_t flg_shift_dir = n < 0 ? HD44780_FLG_SHIFT_RTL : HD44780_FLG_SHIFT_LTR;
+
+    for (uint8_t i = 0; i < abs(n); ++i)
+    {
+        HD44780_write_instruction(lcd, HD44780_CMD_CURSOR_DISPLAY_SHIFT | HD44780_FLG_SHIFT_DISPLAY | flg_shift_dir);
+    }
 }
 
 void HD44780_create_symbol(HD44780 *lcd, uint8_t address, bool font_5x10, uint8_t symbol[])
@@ -368,13 +386,13 @@ void HD44780_put_char(HD44780 *lcd, uint8_t chr)
     case '\n': {
         uint8_t line = HD44780_get_current_line(lcd);
 
-        if (lcd->two_lines && !line)
+        if (!lcd->single_line && !line)
         {
-            HD44780_goto(lcd, 0, 1);
+            HD44780_cursor_to(lcd, 0, 1);
         }
         else
         {
-            HD44780_goto(lcd, 0, 0);
+            HD44780_cursor_to(lcd, 0, 0);
         }
 
         break;
