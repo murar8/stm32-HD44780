@@ -5,28 +5,18 @@ This is a peripheral driver library for interfacing stm32 microcontrollers with 
 ## Features
 
 -   Pure C implementation.
--   Only dependency is the `stm32f1xx_hal.h` HAL include file.
--   8 bit and 4 bit operation.
+-   Only depends on the stm32 HAL include file.
+-   4 bit and 8 bit operation.
 -   5x8 dots and 5x10 dots symbol generation.
 -   Accurate software delays.
 
 ## Installation
 
-The easiest way to include the library in your project is to simply copy `inc/HD44780.h` in your include directory, and `src/HD44780.c` in your source directory. A fancier way to install the library could be to clone the library into your project as a submodule, then you could add the `inc/` and `src/` folder to the compiler source paths.
+This library is meant to be used in projects that employ the stm32 HAL library. The easiest way to include the library in your project is to simply copy `HD44780.h` to your include directory and `HD44780.c` to your source directory.
 
-## Example projects
+## API documentation
 
-An example STM32CubeIDE project is included in the examples directory. The project is configured for the stm32f103c8, tested using the "blue pill" develpment board. The controller should be wired up in the following way:
-
-| Function | MCU pin |
-| -------- | ------- |
-| LCD D4   | PB6     |
-| LCD D5   | PB7     |
-| LCD D6   | PB8     |
-| LCD D7   | PB9     |
-| LCD EN   | B15     |
-| LCD RS   | B13     |
-| LCD RW   | B14     |
+**todo**
 
 ## Usage examples
 
