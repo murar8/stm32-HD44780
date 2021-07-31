@@ -24,47 +24,27 @@
 typedef struct
 {
     GPIO_TypeDef *rs_gpio; /**< GPIO port of the mcu pin connected to the controller's RS line. */
-
     GPIO_TypeDef *rw_gpio; /**< GPIO port of the mcu pin connected to the controller's RW line. */
-
     GPIO_TypeDef *en_gpio; /**< GPIO port of the mcu pin connected to the controller's EN line. */
-
     GPIO_TypeDef *d0_gpio; /**< GPIO port of the mcu pin connected to the controller's D0 line. */
-
     GPIO_TypeDef *d1_gpio; /**< GPIO port of the mcu pin connected to the controller's D1 line. */
-
     GPIO_TypeDef *d2_gpio; /**< GPIO port of the mcu pin connected to the controller's D2 line. */
-
     GPIO_TypeDef *d3_gpio; /**< GPIO port of the mcu pin connected to the controller's D3 line. */
-
     GPIO_TypeDef *d4_gpio; /**< GPIO port of the mcu pin connected to the controller's D4 line. */
-
     GPIO_TypeDef *d5_gpio; /**< GPIO port of the mcu pin connected to the controller's D5 line. */
-
     GPIO_TypeDef *d6_gpio; /**< GPIO port of the mcu pin connected to the controller's D6 line. */
-
     GPIO_TypeDef *d7_gpio; /**< GPIO port of the mcu pin connected to the controller's D7 line. */
 
     uint16_t rs_pin; /**< Pin number of the mcu pin connected to the controller's RS line. */
-
     uint16_t rw_pin; /**< Pin number of the mcu pin connected to the controller's RW line. */
-
     uint16_t en_pin; /**< Pin number of the mcu pin connected to the controller's EN line. */
-
     uint16_t d0_pin; /**< Pin number of the mcu pin connected to the controller's D0 line. */
-
     uint16_t d1_pin; /**< Pin number of the mcu pin connected to the controller's D1 line. */
-
     uint16_t d2_pin; /**< Pin number of the mcu pin connected to the controller's D2 line. */
-
     uint16_t d3_pin; /**< Pin number of the mcu pin connected to the controller's D3 line. */
-
     uint16_t d4_pin; /**< Pin number of the mcu pin connected to the controller's D4 line. */
-
     uint16_t d5_pin; /**< Pin number of the mcu pin connected to the controller's D5 line. */
-
     uint16_t d6_pin; /**< Pin number of the mcu pin connected to the controller's D6 line. */
-
     uint16_t d7_pin; /**< Pin number of the mcu pin connected to the controller's D7 line. */
 
     /**
