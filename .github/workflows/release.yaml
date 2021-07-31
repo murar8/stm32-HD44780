@@ -15,11 +15,14 @@ jobs:
                   github_token: ${{ secrets.GITHUB_TOKEN }}
                   publish_dir: ./html
 
+            - id: get_version
+              run: echo ::set-output name=VERSION::${GITHUB_REF#refs/tags/}
+
             - uses: peaceiris/actions-gh-pages@v3
               with:
                   github_token: ${{ secrets.GITHUB_TOKEN }}
                   publish_dir: ./html
-                  destination_dir: ${GITHUB_REF##*/}
+                  destination_dir: ${{ steps.get_version.outputs.VERSION }}
 
             - uses: softprops/action-gh-release@v1
               with:
