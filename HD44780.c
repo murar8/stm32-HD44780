@@ -1,20 +1,76 @@
 #include "HD44780.h"
 
+/*
+ * Constants
+ */
+
+// Address of the first position of the second line.
+static const uint8_t HD44780_SECOND_LINE_ADDRESS = 0x40;
+
+// Number of spaces that should be printed when a tab character is sent to the controller.
+static const uint8_t HD44780_TAB_SIZE = 4;
+
+/*
+ * Commands
+ */
+
+static const uint8_t HD44780_CMD_CLEAR_DISPLAY = 0X01;
+
+static const uint8_t HD44780_CMD_RETURN_HOME = 0X02;
+
+static const uint8_t HD44780_CMD_ENTRY_MODE_SET = 0x04;
+static const uint8_t HD44780_FLG_DIR_RTL = 0x00;
+static const uint8_t HD44780_FLG_DIR_LTR = 0x02;
+static const uint8_t HD44780_FLG_DISPLAY_NOSHIFT = 0x00;
+static const uint8_t HD44780_FLG_DISPLAY_SHIFT = 0x01;
+
+static const uint8_t HD44780_CMD_DISPLAY_CONTROL = 0x08;
+static const uint8_t HD44780_FLG_DISPLAY_OFF = 0x00;
+static const uint8_t HD44780_FLG_DISPLAY_ON = 0x04;
+static const uint8_t HD44780_FLG_CURSOR_OFF = 0x00;
+static const uint8_t HD44780_FLG_CURSOR_ON = 0x02;
+static const uint8_t HD44780_FLG_BLINK_OFF = 0x00;
+static const uint8_t HD44780_FLG_BLINK_ON = 0x01;
+
+static const uint8_t HD44780_CMD_CURSOR_DISPLAY_SHIFT = 0x10;
+// static const uint8_t HD44780_FLG_SHIFT_CURSOR = 0x00;
+static const uint8_t HD44780_FLG_SHIFT_DISPLAY = 0x08;
+static const uint8_t HD44780_FLG_SHIFT_LTR = 0x00;
+static const uint8_t HD44780_FLG_SHIFT_RTL = 0x04;
+
+static const uint8_t HD44780_CMD_FUNCTION_SET = 0x20;
+static const uint8_t HD44780_FLG_DATA_LEN_4BIT = 0x00;
+static const uint8_t HD44780_FLG_DATA_LEN_8BIT = 0x10;
+static const uint8_t HD44780_FLG_1_LINE = 0x00;
+static const uint8_t HD44780_FLG_2_LINE = 0x08;
+static const uint8_t HD44780_FLG_FONT_5X8 = 0x00;
+static const uint8_t HD44780_FLG_FONT_5X10 = 0x04;
+
+static const uint8_t HD44780_CMD_SET_CGRAM_ADDRESS = 0x40;
+
+static const uint8_t HD44780_CMD_SET_DDRAM_ADDRESS = 0x80;
+
+static const uint8_t HD44780_CMD_READ_BUSYFLAG_AND_ADDRESS = 0X07;
+
+/*
+ * Delay functionality
+ */
+
 // Number of CPU cycles taken by one delay loop.
-static const uint8_t delay_loop_cycles = 9;
+static const uint8_t DELAY_LOOP_CYCLES = 9;
 
 // [ns] Amount of time taken by one delay loop.
 static uint32_t delay_loop_time = 0;
 
-/*
- * Initialize the delay functionality by calculating the time constants in nanoseconds based on the current clock.
- * Cannot define the constants statically since SystemCoreClock is set after HAL initialization.
+/**
+ * Initialize the delay functionality by calculating the delay loop time in nanoseconds based on the current clock.
+ * Cannot define the delay loop time statically since SystemCoreClock is set after HAL initialization.
  */
 static void delay_init()
 {
     if (!delay_loop_time)
     {
-        delay_loop_time = ((uint64_t)1000000000 * delay_loop_cycles) / SystemCoreClock;
+        delay_loop_time = ((uint64_t)1E9 * DELAY_LOOP_CYCLES) / SystemCoreClock;
     }
 }
 
@@ -22,7 +78,7 @@ static void delay_init()
 #pragma GCC push_options
 #pragma GCC optimize("O0")
 
-/*
+/**
  * Halt the program execution for the desired number of nanoseconds.
  * This function doesn't take into account the setup overhead (about 330nS @ 72MHz).
  */
@@ -36,7 +92,7 @@ static inline __attribute__((always_inline)) void delay_ns(uint32_t ns)
 
 #pragma GCC pop_options
 
-/*
+/**
  * Initialize the GPIO peripheral to the desired mode of operation.
  */
 static inline void HD44780_GPIO_init(GPIO_TypeDef *gpio, uint16_t pin, uint32_t mode)
@@ -45,10 +101,10 @@ static inline void HD44780_GPIO_init(GPIO_TypeDef *gpio, uint16_t pin, uint32_t 
     HAL_GPIO_Init(gpio, &GPIO_InitStruct);
 }
 
-/*
+/**
  * Set the GPIO mode of the pins connected to the controller data lines.
  */
-static void HD44780_set_data_mode(HD44780 *lcd, uint32_t mode)
+static void HD44780_set_data_mode(const HD44780 *lcd, uint32_t mode)
 {
     HD44780_GPIO_init(lcd->d7_gpio, lcd->d7_pin, mode);
     HD44780_GPIO_init(lcd->d6_gpio, lcd->d6_pin, mode);
@@ -64,11 +120,11 @@ static void HD44780_set_data_mode(HD44780 *lcd, uint32_t mode)
     }
 }
 
-/*
+/**
  * Perform a read operation returning the 4 or 8 bit value representing the state of the mcu pins
  * connected to the controller data lines, depending on the chosen data length.
  */
-static uint8_t HD44780_pull_value(HD44780 *lcd)
+static uint8_t HD44780_pull_value(const HD44780 *lcd)
 {
     HAL_GPIO_WritePin(lcd->en_gpio, lcd->en_pin, GPIO_PIN_SET);
 
@@ -103,10 +159,10 @@ static uint8_t HD44780_pull_value(HD44780 *lcd)
     return value;
 }
 
-/*
+/**
  * Read a byte from the lcd registers.
  */
-static uint8_t HD44780_read_byte(HD44780 *lcd)
+static uint8_t HD44780_read_byte(const HD44780 *lcd)
 {
     HAL_GPIO_WritePin(lcd->rw_gpio, lcd->rw_pin, GPIO_PIN_SET);
     HAL_GPIO_WritePin(lcd->rs_gpio, lcd->rs_pin, GPIO_PIN_RESET);
@@ -130,51 +186,51 @@ static uint8_t HD44780_read_byte(HD44780 *lcd)
     return byte;
 }
 
-/*
+/**
  * Get the value of the address counter.
  * This address counter is used by both CG and DDRAM addresses,
  * and its value is determined by the previous instruction.
  * The address contents are the same as for instructions set CGRAM address and set DDRAM address.
  */
-static inline uint8_t HD44780_get_address(HD44780 *lcd)
+static inline uint8_t HD44780_get_address(const HD44780 *lcd)
 {
     return HD44780_read_byte(lcd) & ~(1 << HD44780_CMD_READ_BUSYFLAG_AND_ADDRESS);
 }
 
-/*
+/**
  * Get the line on which the cursor is currently lying.
  * 0 -> first line | 1 -> second line
  */
-static inline uint8_t HD44780_get_current_line(HD44780 *lcd)
+static inline uint8_t HD44780_get_current_line(const HD44780 *lcd)
 {
     uint8_t address = HD44780_get_address(lcd);
     return !lcd->single_line && address >= HD44780_SECOND_LINE_ADDRESS;
 }
 
-/*
+/**
  * Read the busy flag (BF) indicating that the system is now internally operating on a previously received
  * instruction. If the return code is 1, the internal operation is in progress. The next instruction will not be
  * accepted until BF is reset to 0. Check the BF status before the next write operation.
  */
-static inline uint8_t HD44780_get_busyflag(HD44780 *lcd)
+static inline uint8_t HD44780_get_busyflag(const HD44780 *lcd)
 {
     return HD44780_read_byte(lcd) >> HD44780_CMD_READ_BUSYFLAG_AND_ADDRESS & 1;
 }
 
-/*
+/**
  * Loop until the busy flag goes low.
  */
-static inline void HD44780_await_busyflag(HD44780 *lcd)
+static inline void HD44780_await_busyflag(const HD44780 *lcd)
 {
     while (HD44780_get_busyflag(lcd))
         ;
 }
 
-/*
+/**
  * Perform a write operation setting a 4 bit or 8 bit value value to the mcu pins connected to the controller data
  * lines, depending on the chosen data length.
  */
-static void HD44780_push_value(HD44780 *lcd, uint8_t byte)
+static void HD44780_push_value(const HD44780 *lcd, uint8_t byte)
 {
     HAL_GPIO_WritePin(lcd->en_gpio, lcd->en_pin, GPIO_PIN_SET);
 
@@ -206,11 +262,11 @@ static void HD44780_push_value(HD44780 *lcd, uint8_t byte)
     // Address hold time = 20ns
 }
 
-/*
+/**
  * Perform a write operation in initialization mode,
  * where the data length is always 8 bit and the last 4 bits are discarded.
  */
-static void HD44780_push_init(HD44780 *lcd, uint8_t byte)
+static void HD44780_push_init(const HD44780 *lcd, uint8_t byte)
 {
     if (lcd->interface_8_bit)
     {
@@ -222,10 +278,10 @@ static void HD44780_push_init(HD44780 *lcd, uint8_t byte)
     }
 }
 
-/*
+/**
  * Write a byte to the lcd registers.
  */
-static void HD44780_write_byte(HD44780 *lcd, bool rs, uint8_t byte)
+static void HD44780_write_byte(const HD44780 *lcd, bool rs, uint8_t byte)
 {
     HD44780_set_data_mode(lcd, GPIO_MODE_OUTPUT_PP);
 
@@ -256,23 +312,23 @@ static void HD44780_write_byte(HD44780 *lcd, bool rs, uint8_t byte)
     }
 }
 
-/*
+/**
  * Write a byte to the lcd instruction register.
  */
-static inline void HD44780_write_instruction(HD44780 *lcd, uint8_t byte)
+static inline void HD44780_write_instruction(const HD44780 *lcd, uint8_t byte)
 {
     HD44780_write_byte(lcd, 0, byte);
 }
 
-/*
+/**
  * Write a byte to the lcd data register.
  */
-static inline void HD44780_write_data(HD44780 *lcd, uint8_t byte)
+static inline void HD44780_write_data(const HD44780 *lcd, uint8_t byte)
 {
     HD44780_write_byte(lcd, 1, byte);
 }
 
-void HD44780_init(HD44780 *lcd)
+void HD44780_init(const HD44780 *lcd)
 {
     delay_init();
 
@@ -312,7 +368,7 @@ void HD44780_init(HD44780 *lcd)
                                        HD44780_FLG_BLINK_OFF);
 }
 
-void HD44780_configure(HD44780 *lcd, HD44780_Config *config)
+void HD44780_configure(const HD44780 *lcd, const HD44780_Config *config)
 {
     uint8_t flg_display_en = config->disable_display ? HD44780_FLG_DISPLAY_OFF : HD44780_FLG_DISPLAY_ON;
     uint8_t flg_cursor_en = config->enable_cursor ? HD44780_FLG_CURSOR_ON : HD44780_FLG_CURSOR_OFF;
@@ -324,27 +380,27 @@ void HD44780_configure(HD44780 *lcd, HD44780_Config *config)
     HD44780_write_instruction(lcd, HD44780_CMD_DISPLAY_CONTROL | flg_display_en | flg_cursor_en | flg_blink_en);
 }
 
-void HD44780_clear(HD44780 *lcd)
+void HD44780_clear(const HD44780 *lcd)
 {
     HD44780_write_instruction(lcd, HD44780_CMD_CLEAR_DISPLAY);
 }
 
-void HD44780_return_home(HD44780 *lcd)
+void HD44780_return_home(const HD44780 *lcd)
 {
     HD44780_write_instruction(lcd, HD44780_CMD_RETURN_HOME);
 }
 
-void HD44780_cursor_to(HD44780 *lcd, uint8_t row, uint8_t column)
+void HD44780_cursor_to(const HD44780 *lcd, uint8_t column, uint8_t row)
 {
     // When the display is configured for single line operation, the address range is 0x00 to 0x4F.
     // For two line operation the address range is 0x00 to 0x27 for the first line,
     // and 0x40 to 0x67 for the second line.
-    uint8_t initial_addr = column % 2 && !lcd->single_line ? HD44780_SECOND_LINE_ADDRESS : 0;
-    uint8_t addr = initial_addr + row;
+    uint8_t start = row % 2 && !lcd->single_line ? HD44780_SECOND_LINE_ADDRESS : 0;
+    uint8_t addr = start + column;
     HD44780_write_instruction(lcd, HD44780_CMD_SET_DDRAM_ADDRESS | addr);
 }
 
-void HD44780_shift_display(HD44780 *lcd, int8_t n)
+void HD44780_shift_display(const HD44780 *lcd, int8_t n)
 {
     uint8_t flg_shift_dir = n < 0 ? HD44780_FLG_SHIFT_RTL : HD44780_FLG_SHIFT_LTR;
 
@@ -354,7 +410,7 @@ void HD44780_shift_display(HD44780 *lcd, int8_t n)
     }
 }
 
-void HD44780_create_symbol(HD44780 *lcd, uint8_t address, bool font_5x10, uint8_t symbol[])
+void HD44780_create_symbol(const HD44780 *lcd, uint8_t address, bool font_5x10, const uint8_t symbol[])
 {
     uint8_t ddram_address = HD44780_get_address(lcd);
 
@@ -379,7 +435,7 @@ void HD44780_create_symbol(HD44780 *lcd, uint8_t address, bool font_5x10, uint8_
     HD44780_write_instruction(lcd, HD44780_CMD_SET_DDRAM_ADDRESS | ddram_address);
 }
 
-void HD44780_put_char(HD44780 *lcd, uint8_t chr)
+void HD44780_put_char(const HD44780 *lcd, uint8_t chr)
 {
     switch (chr)
     {
@@ -413,7 +469,7 @@ void HD44780_put_char(HD44780 *lcd, uint8_t chr)
     }
 }
 
-void HD44780_put_str(HD44780 *lcd, char *str)
+void HD44780_put_str(const HD44780 *lcd, const char *str)
 {
     for (size_t i = 0; str[i] != '\0'; ++i)
     {
