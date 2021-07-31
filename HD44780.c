@@ -18,7 +18,7 @@
 // Address of the first position of the second line.
 static const uint8_t HD44780_SECOND_LINE_ADDRESS = 0x40;
 
-// Number of spaces that should be printed when a tab character is sent to the controller.
+// Number of spaces that should be printed when a tab character is printed to the lcd.
 static const uint8_t HD44780_TAB_SIZE = 4;
 
 /*
@@ -91,7 +91,8 @@ static void delay_init()
 
 /**
  * Halt the program execution for the desired number of nanoseconds.
- * This function doesn't take into account the setup overhead (about 330nS @ 72MHz).
+ * This function doesn't take into account the setup overhead (~330nS @ 72MHz).
+ * For small delays you might run into a small amount of quantization error (~125nS @ 72MHz).
  */
 static inline __attribute__((always_inline)) void delay_ns(uint32_t ns)
 {
@@ -102,6 +103,10 @@ static inline __attribute__((always_inline)) void delay_ns(uint32_t ns)
 }
 
 #pragma GCC pop_options
+
+/*
+ * Internal functions
+ */
 
 /**
  * Initialize the GPIO peripheral to the desired mode of operation.
@@ -132,8 +137,8 @@ static void HD44780_set_data_mode(const HD44780 *lcd, uint32_t mode)
 }
 
 /**
- * Perform a read operation returning the 4 or 8 bit value representing the state of the mcu pins
- * connected to the controller data lines, depending on the chosen data length.
+ * Perform a read operation returning, depending on the chosen data length, the 4 or 8 bit value representing the state
+ * of the mcu pins connected to the controller data lines.
  */
 static uint8_t HD44780_pull_value(const HD44780 *lcd)
 {
@@ -209,8 +214,7 @@ static inline uint8_t HD44780_get_address(const HD44780 *lcd)
 }
 
 /**
- * Get the line on which the cursor is currently lying.
- * 0 -> first line | 1 -> second line
+ * Get the line on which the cursor is currently positioned.
  */
 static inline uint8_t HD44780_get_current_line(const HD44780 *lcd)
 {
@@ -238,8 +242,8 @@ static inline void HD44780_await_busyflag(const HD44780 *lcd)
 }
 
 /**
- * Perform a write operation setting a 4 bit or 8 bit value value to the mcu pins connected to the controller data
- * lines, depending on the chosen data length.
+ * Perform a write operation setting, depending on the chosen data length, a 4 bit or 8 bit value to the mcu pins
+ * connected to the controller data lines.
  */
 static void HD44780_push_value(const HD44780 *lcd, uint8_t byte)
 {
@@ -270,6 +274,7 @@ static void HD44780_push_value(const HD44780 *lcd, uint8_t byte)
     delay_ns(240);
 
     HAL_GPIO_WritePin(lcd->en_gpio, lcd->en_pin, GPIO_PIN_RESET);
+
     // Address hold time = 20ns
 }
 
@@ -316,7 +321,7 @@ static void HD44780_write_byte(const HD44780 *lcd, bool rs, uint8_t byte)
     // After execution of the CGRAM/DDRAM data write or read instruction,
     // the RAM address counter is incremented or decremented by 1.
     // The RAM address counter is updated after the busy flag turns off.
-    // Tadd = 4us
+    // Address counter update time = 4us
     if (rs)
     {
         delay_ns(5E3);
@@ -338,6 +343,10 @@ static inline void HD44780_write_data(const HD44780 *lcd, uint8_t byte)
 {
     HD44780_write_byte(lcd, 1, byte);
 }
+
+/*
+ * Public interface
+ */
 
 void HD44780_init(const HD44780 *lcd)
 {
@@ -370,8 +379,8 @@ void HD44780_init(const HD44780 *lcd)
     uint8_t flg_data_len = lcd->interface_8_bit ? HD44780_FLG_DATA_LEN_8BIT : HD44780_FLG_DATA_LEN_4BIT;
     uint8_t flg_line_qty = lcd->single_line ? HD44780_FLG_1_LINE : HD44780_FLG_2_LINE;
     uint8_t flg_font_size = lcd->font_5x10 ? HD44780_FLG_FONT_5X10 : HD44780_FLG_FONT_5X8;
-
     HD44780_write_instruction(lcd, HD44780_CMD_FUNCTION_SET | flg_data_len | flg_line_qty | flg_font_size);
+
     HD44780_write_instruction(lcd, HD44780_CMD_DISPLAY_CONTROL);
     HD44780_write_instruction(lcd, HD44780_CMD_CLEAR_DISPLAY);
     HD44780_write_instruction(lcd, HD44780_CMD_ENTRY_MODE_SET | HD44780_FLG_DISPLAY_NOSHIFT | HD44780_FLG_DIR_LTR);

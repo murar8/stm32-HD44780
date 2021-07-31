@@ -184,7 +184,7 @@ void HD44780_shift_display(const HD44780 *lcd, int8_t n);
 /**
  * Create a user defined character to display in the LCD.
  * The controller memory can store up to 8 5x8 symbols, and up to 4 5x10 symbols.
- * Please take into consideartion that 5x10 symbols needs 2 CGRAM slots, so after defining a 5x10 symbol at address n,
+ * Please take into consideration that 5x10 symbols needs 2 CGRAM slots, so after defining a 5x10 symbol at address n,
  * next symbol should be defined at address n+2.
  *
  * @param lcd Controller instance.
