@@ -16,7 +16,8 @@ This library is meant to be used in projects that employ the stm32 HAL library. 
 
 ## API documentation
 
-Docs are available at https://murar8.github.io/stm32-HD44780
+Documentation for the latest version is available at https://murar8.github.io/stm32-HD44780
+If you want to read the documentation for a specific version you can append the version tag to the url. Example: https://murar8.github.io/stm32-HD44780/v0.1.0
 
 ## Usage examples
 
