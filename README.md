@@ -16,7 +16,7 @@ This library is meant to be used in projects that employ the stm32 HAL library. 
 
 ## API documentation
 
-**todo**
+Docs are available at https://murar8.github.io/stm32-HD44780
 
 ## Usage examples
 
