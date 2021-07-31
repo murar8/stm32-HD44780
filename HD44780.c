@@ -104,6 +104,16 @@ static inline __attribute__((always_inline)) void delay_ns(uint32_t ns)
 
 #pragma GCC pop_options
 
+/**
+ * Halt the program execution for the desired number of microseconds.
+ */
+#define delay_us(n) (delay_ns(n * 1000))
+
+/**
+ * Halt the program execution for the desired number of milliseconds.
+ */
+#define delay_ms(n) (delay_ns(n * 1000000))
+
 /*
  * Internal functions
  */
@@ -282,7 +292,7 @@ static void HD44780_push_value(const HD44780 *lcd, uint8_t byte)
  * Perform a write operation in initialization mode,
  * where the data length is always 8 bit and the last 4 bits are discarded.
  */
-static void HD44780_push_init(const HD44780 *lcd, uint8_t byte)
+static void HD44780_write_init(const HD44780 *lcd, uint8_t byte)
 {
     if (lcd->interface_8_bit)
     {
@@ -324,7 +334,7 @@ static void HD44780_write_byte(const HD44780 *lcd, bool rs, uint8_t byte)
     // Address counter update time = 4us
     if (rs)
     {
-        delay_ns(5E3);
+        delay_us(5);
     }
 }
 
@@ -355,6 +365,8 @@ void HD44780_init(const HD44780 *lcd)
     HD44780_GPIO_init(lcd->rs_gpio, lcd->rs_pin, GPIO_MODE_OUTPUT_PP);
     HD44780_GPIO_init(lcd->rw_gpio, lcd->rw_pin, GPIO_MODE_OUTPUT_PP);
     HD44780_GPIO_init(lcd->en_gpio, lcd->en_pin, GPIO_MODE_OUTPUT_PP);
+    HD44780_set_data_mode(lcd, GPIO_MODE_OUTPUT_PP);
+
     HAL_GPIO_WritePin(lcd->rs_gpio, lcd->rs_pin, GPIO_PIN_RESET);
     HAL_GPIO_WritePin(lcd->rw_gpio, lcd->rw_pin, GPIO_PIN_RESET);
     HAL_GPIO_WritePin(lcd->en_gpio, lcd->en_pin, GPIO_PIN_RESET);
@@ -362,25 +374,25 @@ void HD44780_init(const HD44780 *lcd)
     // Initialization by instruction.
     // See https://www.sparkfun.com/datasheets/LCD/HD44780.pdf pages 45-46.
 
-    delay_ns(50E6); // Wait for more than 40 ms after VCC rises to 2.7V.
-    HD44780_push_init(lcd, HD44780_CMD_FUNCTION_SET | HD44780_FLG_DATA_LEN_8BIT);
-    delay_ns(4500E3); // Wait for more than 4.1ms.
-    HD44780_push_init(lcd, HD44780_CMD_FUNCTION_SET | HD44780_FLG_DATA_LEN_8BIT);
-    delay_ns(120E3); // Wait for more than 100us.
-    HD44780_push_init(lcd, HD44780_CMD_FUNCTION_SET | HD44780_FLG_DATA_LEN_8BIT);
-    delay_ns(50E3); // BF cannot be checked before this instruction, wait more than 37us.
+    delay_ms(50); // Wait for more than 40 ms after VCC rises to 2.7V.
+    HD44780_write_init(lcd, HD44780_CMD_FUNCTION_SET | HD44780_FLG_DATA_LEN_8BIT);
+    delay_us(4500); // Wait for more than 4.1ms.
+    HD44780_write_init(lcd, HD44780_CMD_FUNCTION_SET | HD44780_FLG_DATA_LEN_8BIT);
+    delay_us(120); // Wait for more than 100us.
+    HD44780_write_init(lcd, HD44780_CMD_FUNCTION_SET | HD44780_FLG_DATA_LEN_8BIT);
+    delay_us(50); // BF cannot be checked before this instruction, wait more than 37us.
 
     if (!lcd->interface_8_bit)
     {
-        HD44780_push_init(lcd, HD44780_CMD_FUNCTION_SET | HD44780_FLG_DATA_LEN_4BIT);
-        delay_ns(50E3); // BF cannot be checked before this instruction, wait more than 37us.
+        HD44780_write_init(lcd, HD44780_CMD_FUNCTION_SET | HD44780_FLG_DATA_LEN_4BIT);
+        delay_us(50); // BF cannot be checked before this instruction, wait more than 37us.
     }
 
     uint8_t flg_data_len = lcd->interface_8_bit ? HD44780_FLG_DATA_LEN_8BIT : HD44780_FLG_DATA_LEN_4BIT;
     uint8_t flg_line_qty = lcd->single_line ? HD44780_FLG_1_LINE : HD44780_FLG_2_LINE;
     uint8_t flg_font_size = lcd->font_5x10 ? HD44780_FLG_FONT_5X10 : HD44780_FLG_FONT_5X8;
-    HD44780_write_instruction(lcd, HD44780_CMD_FUNCTION_SET | flg_data_len | flg_line_qty | flg_font_size);
 
+    HD44780_write_instruction(lcd, HD44780_CMD_FUNCTION_SET | flg_data_len | flg_line_qty | flg_font_size);
     HD44780_write_instruction(lcd, HD44780_CMD_DISPLAY_CONTROL);
     HD44780_write_instruction(lcd, HD44780_CMD_CLEAR_DISPLAY);
     HD44780_write_instruction(lcd, HD44780_CMD_ENTRY_MODE_SET | HD44780_FLG_DISPLAY_NOSHIFT | HD44780_FLG_DIR_LTR);
