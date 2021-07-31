@@ -7,10 +7,16 @@ jobs:
         runs-on: ubuntu-latest
         steps:
             - uses: actions/checkout@v2
+
             - uses: mattnotmitt/doxygen-action@v1
+
             - uses: peaceiris/actions-gh-pages@v3
               with:
                   github_token: ${{ secrets.GITHUB_TOKEN }}
                   publish_dir: ./html
+
             - uses: softprops/action-gh-release@v1
-              with: { files: HD44780.h HD44780.c }
+              with:
+                  files: |
+                      HD44780.h
+                      HD44780.c
