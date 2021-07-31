@@ -15,10 +15,10 @@
  * Constants
  */
 
-// Address of the first position of the second line.
+/** Address of the first position of the second line. */
 static const uint8_t HD44780_SECOND_LINE_ADDRESS = 0x40;
 
-// Number of spaces that should be printed when a tab character is printed to the lcd.
+/** Number of spaces that should be printed when a tab character is printed to the lcd. */
 static const uint8_t HD44780_TAB_SIZE = 4;
 
 /*
@@ -67,10 +67,10 @@ static const uint8_t HD44780_CMD_READ_BUSYFLAG_AND_ADDRESS = 0X07;
  * Delay functionality
  */
 
-// Number of CPU cycles taken by one delay loop.
+/** Number of CPU cycles taken by one delay loop. */
 static const uint8_t DELAY_LOOP_CYCLES = 9;
 
-// [ns] Amount of time taken by one delay loop.
+/** [ns] Amount of time taken by one delay loop. */
 static uint32_t delay_loop_time = 0;
 
 /**
@@ -85,7 +85,7 @@ static void delay_init()
     }
 }
 
-// Disable optimization for the delay function to get a more deterministic execution time.
+// Disable optimization for the delay functions to get a more deterministic execution time.
 #pragma GCC push_options
 #pragma GCC optimize("O0")
 
@@ -102,17 +102,23 @@ static inline __attribute__((always_inline)) void delay_ns(uint32_t ns)
         ;
 }
 
-#pragma GCC pop_options
-
 /**
  * Halt the program execution for the desired number of microseconds.
  */
-#define delay_us(n) (delay_ns(n * 1000))
+static inline __attribute__((always_inline)) void delay_us(uint32_t us)
+{
+    delay_ns(us * 1000)
+}
 
 /**
  * Halt the program execution for the desired number of milliseconds.
  */
-#define delay_ms(n) (delay_ns(n * 1000000))
+static inline __attribute__((always_inline)) void delay_ms(uint32_t ms)
+{
+    delay_ns(ms * 1000000)
+}
+
+#pragma GCC pop_options
 
 /*
  * Internal functions
