@@ -20,7 +20,7 @@ This library is meant to be used in projects that employ the stm32 HAL library. 
 
 ## Usage examples
 
-Some common usage scenarios are listed below. If you want more detatils the API is documented in `inc/HD44780.h`.
+Some common usage scenarios are listed below.
 
 ### Initialization, 4 bit mode, 2 lines, 5x8 character font
 
@@ -122,7 +122,7 @@ HD44780_put_str(&lcd, "30");
 
 [![Donate](https://img.shields.io/badge/Donate-PayPal-green.svg)](https://www.paypal.com/cgi-bin/webscr?cmd=_s-xclick&hosted_button_id=WW7VLKVE9YP8Q&source=url)
 
-I do not expect to make any money from this extension but if you would like to buy me a coffee or something you are welcome to do so :)
+I do not expect to make any money from this project but if you would like to buy me a coffee or something you are welcome to do so :)
 
 ## License
 
