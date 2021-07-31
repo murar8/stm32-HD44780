@@ -12,7 +12,7 @@ This is a peripheral driver library for interfacing stm32 microcontrollers with 
 
 ## Installation
 
-This library is meant to be used in projects that employ the stm32 HAL library. The easiest way to include the library in your project is to simply copy `HD44780.h` to your include directory and `HD44780.c` to your source directory.
+This library is meant to be used in projects that employ the stm32 HAL library. The easiest way to include the library in your project is to simply copy `HD44780.h` to your include directory and `HD44780.c` to your source directory. The aforementioned files can be downloaded from the [releases](https://github.com/murar8/stm32-HD44780/releases) page.
 
 ## API documentation
 
