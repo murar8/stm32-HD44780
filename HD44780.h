@@ -100,14 +100,14 @@ typedef struct
     /**
      * Use the 5x10 dots character font instead of the default 5x8 dots font.
      *
-     * @note The 5x10 dots font only supports single line operation ( @ref single_line = true ).
+     * @warning The 5x10 dots font only supports single line operation ( @ref single_line = true ).
      */
     bool font_5x10;
 } HD44780;
 
 /**
  * %HD44780 controller configuration.
- * Use in conjunction with @ref HD44780_configure to enable/disable the different features of the lcd.
+ * Use in conjunction with HD44780_configure() to enable/disable the different features of the lcd.
  */
 typedef struct
 {
@@ -187,8 +187,7 @@ void HD44780_cursor_to(const HD44780 *lcd, uint8_t column, uint8_t row);
 
 /**
  * Shift the contents of the display right or left by n positions.
- *
- * @note The first and second line will shift at the same time.
+ * The first and second line will shift at the same time.
  *
  * @note The execution time of this function will increase linearly with the numbers of positions shifted (~37us /
  * position shifted).
@@ -203,8 +202,9 @@ void HD44780_shift_display(const HD44780 *lcd, int8_t n);
 /**
  * Create a user defined character to display in the LCD.
  * The controller memory can store up to 8 5x8 symbols, and up to 4 5x10 symbols.
- * Please take into consideration that 5x10 symbols needs 2 CGRAM slots, so after defining a 5x10 symbol at address n,
- * next symbol should be defined at address n+2.
+ *
+ * @warning 5x10 symbols need 2 CGRAM slots, so after defining a 5x10 symbol at address n, the next symbol should be
+ * defined at address n+2.
  *
  * @param lcd Controller instance.
  *
@@ -230,9 +230,9 @@ void HD44780_put_char(const HD44780 *lcd, uint8_t chr);
 
 /**
  * Write a string to the lcd, then advance the cursor.
- * The same considerations for special characters from @ref HD44780_put_char apply to this function.
+ * The same considerations for special characters from HD44780_put_char() apply to this function.
  *
- * @note The string must be null terminated.
+ * @warning The string must be null terminated.
  *
  * @param lcd Controller instance.
  *
