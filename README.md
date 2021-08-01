@@ -16,7 +16,7 @@ This library is meant to be used in projects that employ the stm32 HAL library. 
 
 ## Configuration
 
-Before starting to use the library you are going to need to select your target architecture. This is done by defining a preprocessor symbol corresponding to the target architecture. The possible architectures are listed below:
+Before starting to use the library you are going to need to select your target architecture. This is done by defining a corresponding preprocessor symbol. The possible architectures are listed below:
 
 -   `STM32F0`
 -   `STM32F1`
@@ -34,7 +34,7 @@ Before starting to use the library you are going to need to select your target a
 -   `STM32WB`
 -   `STM32WL`
 
-Here are a couple of ways to define such symbols:
+Here are a couple of ways to define one of these symbols:
 
 ### Define a symbol in your preprocessor settings
 
@@ -50,7 +50,7 @@ With STM32CubeIDE 1.7:
 
 `Project` -> `Properties` -> `C/C++ General` -> `Paths and Symbols` -> `Symbols` -> `Add...`
 
-### Create a `HD44780_config.h` file
+### Create an HD44780_config.h file
 
 If none of the architecture symbols are defined the library will look for the `HD44780_config.h` file in your include path. This file can be used for defining the symbol for the chosen architecture. A template for this file can be obtained from the [releases](https://github.com/murar8/stm32-HD44780/releases) page.
 
