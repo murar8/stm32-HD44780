@@ -30,3 +30,4 @@ jobs:
                   files: |
                       HD44780.h
                       HD44780.c
+                      HD44780_conf_template.h

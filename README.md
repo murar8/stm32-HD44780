@@ -14,6 +14,50 @@ This is a peripheral driver library for interfacing stm32 microcontrollers with 
 
 This library is meant to be used in projects that employ the stm32 HAL library. The easiest way to include the library in your project is to simply copy `HD44780.h` to your include directory and `HD44780.c` to your source directory. The aforementioned files can be downloaded from the [releases](https://github.com/murar8/stm32-HD44780/releases) page.
 
+## Configuration
+
+Before starting to use the library you are going to need to select your target architecture. This is done by defining a preprocessor symbol corresponding to the target architecture. The possible architectures are listed below:
+
+-   `STM32F0`
+-   `STM32F1`
+-   `STM32F2`
+-   `STM32F3`
+-   `STM32F4`
+-   `STM32F7`
+-   `STM32H7`
+-   `STM32G0`
+-   `STM32G4`
+-   `STM32L0`
+-   `STM32L1`
+-   `STM32L4`
+-   `STM32L5`
+-   `STM32WB`
+-   `STM32WL`
+
+Here are a couple of ways to define such symbols:
+
+### Define a symbol in your preprocessor settings
+
+One method is to define the chosen symbol globally using the preprocessor settings.
+
+With GCC:
+
+```shell
+gcc -DSTM32XX [options] [source files] [-o output file]
+```
+
+With STM32CubeIDE 1.7:
+
+`Project` -> `Properties` -> `C/C++ General` -> `Paths and Symbols` -> `Symbols` -> `Add...`
+
+### Create a `HD44780_config.h` file
+
+If none of the architecture symbols are defined the library will look for the `HD44780_config.h` file in your include path. This file can be used for defining the symbol for the chosen architecture. A template for this file can be obtained from the [releases](https://github.com/murar8/stm32-HD44780/releases) page.
+
+```c
+#define STM32F1
+```
+
 ## API documentation
 
 Documentation for the latest version is available at https://murar8.github.io/stm32-HD44780/latest
@@ -26,7 +70,7 @@ Some common usage scenarios are listed below.
 
 ### Initialization, 4 bit mode, 2 lines, 5x8 character font
 
-```cpp
+```c
 HD44780 lcd = {
     .rs_gpio = LCD_RS_GPIO_Port,
     .rw_gpio = LCD_RW_GPIO_Port,
@@ -49,7 +93,7 @@ HD44780_init(&lcd);
 
 ### Initialization, 8 bit mode, single line, 5x10 character font
 
-```cpp
+```c
 HD44780 lcd = {
     .rs_gpio = LCD_RS_GPIO_Port,
     .rw_gpio = LCD_RW_GPIO_Port,
@@ -83,13 +127,13 @@ HD44780_init(&lcd);
 
 ### Printing a string on the lcd
 
-```cpp
+```c
 HD44780_put_str(&lcd, "Hello, world!");
 ```
 
 ### Generating and printing a new 5x8 symbol
 
-```cpp
+```c
 uint8_t skull[8] = {
     0b00000,
     0b01110,
@@ -107,14 +151,14 @@ HD44780_put_str(&lcd, "\x04");
 
 ### Enable cursor and blinking
 
-```cpp
+```c
 HD44780_Config lcd_config = { .enable_cursor = true, .enable_blink = true };
 HD44780_configure(&lcd, &lcd_config);
 ```
 
 ### Update the text in a specific position
 
-```cpp
+```c
 HD44780_put_str(&lcd, "Temperature: 21C");
 HD44780_cursor_to(&lcd, 13, 0);
 HD44780_put_str(&lcd, "30");
