@@ -2,7 +2,7 @@
  * @file HD44780.c %HD44780 peripheral library for stm32 microcontrollers. More information is available at the
  * project's home page: https://github.com/murar8/stm32-HD44780
  *
- * @version 0.1.0
+ * @version 0.1.1
  *
  * @author Lorenzo Murarotto <lnzmrr@gmail.com>
  *
@@ -292,14 +292,14 @@ void HD44780_create_symbol(const HD44780 *lcd, uint8_t address, bool font_5x10, 
         HD44780_write_data(lcd, symbol[i]);
     }
 
-// Fill remaining pixels with whitespace.
-     if (font_5x10)
-     {
-         for (uint8_t i = 0; i < 6; ++i)
-         {
-             HD44780_write_data(lcd, 0);
-         }
-     }
+    // Fill remaining pixels with whitespace.
+    if (font_5x10)
+    {
+        for (uint8_t i = 0; i < 6; ++i)
+        {
+            HD44780_write_data(lcd, 0);
+        }
+    }
 
     HD44780_write_instruction(lcd, HD44780_CMD_SET_DDRAM_ADDRESS | ddram_address);
 }
