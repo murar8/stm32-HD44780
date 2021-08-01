@@ -81,7 +81,7 @@ static void delay_init()
 {
     if (!delay_loop_time)
     {
-        delay_loop_time = ((uint64_t)1E9 * DELAY_LOOP_CYCLES) / SystemCoreClock;
+        delay_loop_time = ((uint64_t)1000000000 * DELAY_LOOP_CYCLES) / SystemCoreClock;
     }
 }
 
@@ -96,127 +96,65 @@ static void delay_init()
  */
 static inline __attribute__((always_inline)) void delay_ns(uint32_t ns)
 {
-    uint32_t counter = ns / delay_loop_time;
+    volatile uint32_t counter = ns / delay_loop_time;
 
     while (counter--)
         ;
 }
 
+#pragma GCC pop_options
+
 /**
  * Halt the program execution for the desired number of microseconds.
  */
-static inline __attribute__((always_inline)) void delay_us(uint32_t us)
-{
-    delay_ns(us * 1000)
-}
+#define delay_us(us) delay_ns(us * 1000)
 
 /**
  * Halt the program execution for the desired number of milliseconds.
  */
-static inline __attribute__((always_inline)) void delay_ms(uint32_t ms)
-{
-    delay_ns(ms * 1000000)
-}
-
-#pragma GCC pop_options
+#define delay_ms(ms) delay_ns(ms * 1000000)
 
 /*
- * Internal functions
+ * Internal function declarations
  */
 
 /**
  * Initialize the GPIO peripheral to the desired mode of operation.
  */
-static inline void HD44780_GPIO_init(GPIO_TypeDef *gpio, uint16_t pin, uint32_t mode)
-{
-    GPIO_InitTypeDef GPIO_InitStruct = {.Pull = GPIO_NOPULL, .Speed = GPIO_SPEED_FREQ_HIGH, .Pin = pin, .Mode = mode};
-    HAL_GPIO_Init(gpio, &GPIO_InitStruct);
-}
+static inline void GPIO_init(GPIO_TypeDef *gpio, uint16_t pin, uint32_t mode);
 
 /**
  * Set the GPIO mode of the pins connected to the controller data lines.
  */
-static void HD44780_set_data_mode(const HD44780 *lcd, uint32_t mode)
-{
-    HD44780_GPIO_init(lcd->d7_gpio, lcd->d7_pin, mode);
-    HD44780_GPIO_init(lcd->d6_gpio, lcd->d6_pin, mode);
-    HD44780_GPIO_init(lcd->d5_gpio, lcd->d5_pin, mode);
-    HD44780_GPIO_init(lcd->d4_gpio, lcd->d4_pin, mode);
-
-    if (lcd->interface_8_bit)
-    {
-        HD44780_GPIO_init(lcd->d3_gpio, lcd->d3_pin, mode);
-        HD44780_GPIO_init(lcd->d2_gpio, lcd->d2_pin, mode);
-        HD44780_GPIO_init(lcd->d1_gpio, lcd->d1_pin, mode);
-        HD44780_GPIO_init(lcd->d0_gpio, lcd->d0_pin, mode);
-    }
-}
+static void HD44780_set_data_mode(const HD44780 *lcd, uint32_t mode);
 
 /**
  * Perform a read operation returning, depending on the chosen data length, the 4 or 8 bit value representing the state
  * of the mcu pins connected to the controller data lines.
  */
-static uint8_t HD44780_pull_value(const HD44780 *lcd)
-{
-    HAL_GPIO_WritePin(lcd->en_gpio, lcd->en_pin, GPIO_PIN_SET);
+static uint8_t HD44780_pull_value(const HD44780 *lcd);
 
-    // Data delay time = 360ns
-    // Enable rise/fall time = 25ns
-    // Total = 385ns
-    delay_ns(400);
-
-    uint8_t value = 0;
-
-    if (lcd->interface_8_bit)
-    {
-        value |= HAL_GPIO_ReadPin(lcd->d7_gpio, lcd->d7_pin) << 7;
-        value |= HAL_GPIO_ReadPin(lcd->d6_gpio, lcd->d6_pin) << 6;
-        value |= HAL_GPIO_ReadPin(lcd->d5_gpio, lcd->d5_pin) << 5;
-        value |= HAL_GPIO_ReadPin(lcd->d4_gpio, lcd->d4_pin) << 4;
-        value |= HAL_GPIO_ReadPin(lcd->d3_gpio, lcd->d3_pin) << 3;
-        value |= HAL_GPIO_ReadPin(lcd->d2_gpio, lcd->d2_pin) << 2;
-        value |= HAL_GPIO_ReadPin(lcd->d1_gpio, lcd->d1_pin) << 1;
-        value |= HAL_GPIO_ReadPin(lcd->d0_gpio, lcd->d0_pin) << 0;
-    }
-    else
-    {
-        value |= HAL_GPIO_ReadPin(lcd->d7_gpio, lcd->d7_pin) << 3;
-        value |= HAL_GPIO_ReadPin(lcd->d6_gpio, lcd->d6_pin) << 2;
-        value |= HAL_GPIO_ReadPin(lcd->d5_gpio, lcd->d5_pin) << 1;
-        value |= HAL_GPIO_ReadPin(lcd->d4_gpio, lcd->d4_pin) << 0;
-    }
-
-    HAL_GPIO_WritePin(lcd->en_gpio, lcd->en_pin, GPIO_PIN_RESET);
-
-    return value;
-}
+/**
+ * Perform a write operation setting, depending on the chosen data length, a 4 bit or 8 bit value to the mcu pins
+ * connected to the controller data lines.
+ */
+static void HD44780_push_value(const HD44780 *lcd, uint8_t byte);
 
 /**
  * Read a byte from the lcd registers.
  */
-static uint8_t HD44780_read_byte(const HD44780 *lcd)
-{
-    HAL_GPIO_WritePin(lcd->rw_gpio, lcd->rw_pin, GPIO_PIN_SET);
-    HAL_GPIO_WritePin(lcd->rs_gpio, lcd->rs_pin, GPIO_PIN_RESET);
+static uint8_t HD44780_read_byte(const HD44780 *lcd);
 
-    // Address set-up time (RS, R/W to E) = 60ns
+/**
+ * Write a byte to the lcd registers.
+ */
+static void HD44780_write_byte(const HD44780 *lcd, bool rs, uint8_t byte);
 
-    HD44780_set_data_mode(lcd, GPIO_MODE_INPUT);
-
-    uint8_t byte = 0;
-
-    if (lcd->interface_8_bit)
-    {
-        byte = HD44780_pull_value(lcd);
-    }
-    else
-    {
-        byte |= HD44780_pull_value(lcd) << 4;
-        byte |= HD44780_pull_value(lcd);
-    }
-
-    return byte;
-}
+/**
+ * Write a byte to the lcd registers in initialization mode,
+ * where the data length is always 8 bit and the last 4 bits are discarded.
+ */
+static void HD44780_write_init(const HD44780 *lcd, uint8_t byte);
 
 /**
  * Get the value of the address counter.
@@ -224,153 +162,46 @@ static uint8_t HD44780_read_byte(const HD44780 *lcd)
  * and its value is determined by the previous instruction.
  * The address contents are the same as for instructions set CGRAM address and set DDRAM address.
  */
-static inline uint8_t HD44780_get_address(const HD44780 *lcd)
-{
-    return HD44780_read_byte(lcd) & ~(1 << HD44780_CMD_READ_BUSYFLAG_AND_ADDRESS);
-}
-
-/**
- * Get the line on which the cursor is currently positioned.
- */
-static inline uint8_t HD44780_get_current_line(const HD44780 *lcd)
-{
-    uint8_t address = HD44780_get_address(lcd);
-    return !lcd->single_line && address >= HD44780_SECOND_LINE_ADDRESS;
-}
+static inline uint8_t HD44780_get_address(const HD44780 *lcd);
 
 /**
  * Read the busy flag (BF) indicating that the system is now internally operating on a previously received
  * instruction. If the return code is 1, the internal operation is in progress. The next instruction will not be
  * accepted until BF is reset to 0. Check the BF status before the next write operation.
  */
-static inline uint8_t HD44780_get_busyflag(const HD44780 *lcd)
-{
-    return HD44780_read_byte(lcd) >> HD44780_CMD_READ_BUSYFLAG_AND_ADDRESS & 1;
-}
+static inline uint8_t HD44780_get_busyflag(const HD44780 *lcd);
 
 /**
  * Loop until the busy flag goes low.
  */
-static inline void HD44780_await_busyflag(const HD44780 *lcd)
-{
-    while (HD44780_get_busyflag(lcd))
-        ;
-}
-
-/**
- * Perform a write operation setting, depending on the chosen data length, a 4 bit or 8 bit value to the mcu pins
- * connected to the controller data lines.
- */
-static void HD44780_push_value(const HD44780 *lcd, uint8_t byte)
-{
-    HAL_GPIO_WritePin(lcd->en_gpio, lcd->en_pin, GPIO_PIN_SET);
-
-    if (lcd->interface_8_bit)
-    {
-        HAL_GPIO_WritePin(lcd->d7_gpio, lcd->d7_pin, byte & (1 << 7) ? GPIO_PIN_SET : GPIO_PIN_RESET);
-        HAL_GPIO_WritePin(lcd->d6_gpio, lcd->d6_pin, byte & (1 << 6) ? GPIO_PIN_SET : GPIO_PIN_RESET);
-        HAL_GPIO_WritePin(lcd->d5_gpio, lcd->d5_pin, byte & (1 << 5) ? GPIO_PIN_SET : GPIO_PIN_RESET);
-        HAL_GPIO_WritePin(lcd->d4_gpio, lcd->d4_pin, byte & (1 << 4) ? GPIO_PIN_SET : GPIO_PIN_RESET);
-        HAL_GPIO_WritePin(lcd->d3_gpio, lcd->d3_pin, byte & (1 << 3) ? GPIO_PIN_SET : GPIO_PIN_RESET);
-        HAL_GPIO_WritePin(lcd->d2_gpio, lcd->d2_pin, byte & (1 << 2) ? GPIO_PIN_SET : GPIO_PIN_RESET);
-        HAL_GPIO_WritePin(lcd->d1_gpio, lcd->d1_pin, byte & (1 << 1) ? GPIO_PIN_SET : GPIO_PIN_RESET);
-        HAL_GPIO_WritePin(lcd->d0_gpio, lcd->d0_pin, byte & (1 << 0) ? GPIO_PIN_SET : GPIO_PIN_RESET);
-    }
-    else
-    {
-        HAL_GPIO_WritePin(lcd->d7_gpio, lcd->d7_pin, byte & (1 << 3) ? GPIO_PIN_SET : GPIO_PIN_RESET);
-        HAL_GPIO_WritePin(lcd->d6_gpio, lcd->d6_pin, byte & (1 << 2) ? GPIO_PIN_SET : GPIO_PIN_RESET);
-        HAL_GPIO_WritePin(lcd->d5_gpio, lcd->d5_pin, byte & (1 << 1) ? GPIO_PIN_SET : GPIO_PIN_RESET);
-        HAL_GPIO_WritePin(lcd->d4_gpio, lcd->d4_pin, byte & (1 << 0) ? GPIO_PIN_SET : GPIO_PIN_RESET);
-    }
-
-    // Data set-up time = 195ns
-    // Enable rise/fall time = 25ns
-    // Total = 220ns
-    delay_ns(240);
-
-    HAL_GPIO_WritePin(lcd->en_gpio, lcd->en_pin, GPIO_PIN_RESET);
-
-    // Address hold time = 20ns
-}
-
-/**
- * Perform a write operation in initialization mode,
- * where the data length is always 8 bit and the last 4 bits are discarded.
- */
-static void HD44780_write_init(const HD44780 *lcd, uint8_t byte)
-{
-    if (lcd->interface_8_bit)
-    {
-        HD44780_push_value(lcd, byte);
-    }
-    else
-    {
-        HD44780_push_value(lcd, byte >> 4);
-    }
-}
-
-/**
- * Write a byte to the lcd registers.
- */
-static void HD44780_write_byte(const HD44780 *lcd, bool rs, uint8_t byte)
-{
-    HD44780_set_data_mode(lcd, GPIO_MODE_OUTPUT_PP);
-
-    HAL_GPIO_WritePin(lcd->rw_gpio, lcd->rw_pin, GPIO_PIN_RESET);
-    HAL_GPIO_WritePin(lcd->rs_gpio, lcd->rs_pin, rs);
-
-    // Address set-up time (RS, R/W to E) = 60ns
-
-    if (lcd->interface_8_bit)
-    {
-        HD44780_push_value(lcd, byte);
-    }
-    else
-    {
-        HD44780_push_value(lcd, byte >> 4);
-        HD44780_push_value(lcd, byte);
-    }
-
-    HD44780_await_busyflag(lcd);
-
-    // After execution of the CGRAM/DDRAM data write or read instruction,
-    // the RAM address counter is incremented or decremented by 1.
-    // The RAM address counter is updated after the busy flag turns off.
-    // Address counter update time = 4us
-    if (rs)
-    {
-        delay_us(5);
-    }
-}
+static inline void HD44780_await_busyflag(const HD44780 *lcd);
 
 /**
  * Write a byte to the lcd instruction register.
  */
-static inline void HD44780_write_instruction(const HD44780 *lcd, uint8_t byte)
-{
-    HD44780_write_byte(lcd, 0, byte);
-}
+static inline void HD44780_write_instruction(const HD44780 *lcd, uint8_t byte);
 
 /**
  * Write a byte to the lcd data register.
  */
-static inline void HD44780_write_data(const HD44780 *lcd, uint8_t byte)
-{
-    HD44780_write_byte(lcd, 1, byte);
-}
+static inline void HD44780_write_data(const HD44780 *lcd, uint8_t byte);
+
+/**
+ * Get the line on which the cursor is currently positioned.
+ */
+static inline uint8_t HD44780_get_current_line(const HD44780 *lcd);
 
 /*
- * Public interface
+ * Public function definitions
  */
 
 void HD44780_init(const HD44780 *lcd)
 {
     delay_init();
 
-    HD44780_GPIO_init(lcd->rs_gpio, lcd->rs_pin, GPIO_MODE_OUTPUT_PP);
-    HD44780_GPIO_init(lcd->rw_gpio, lcd->rw_pin, GPIO_MODE_OUTPUT_PP);
-    HD44780_GPIO_init(lcd->en_gpio, lcd->en_pin, GPIO_MODE_OUTPUT_PP);
+    GPIO_init(lcd->rs_gpio, lcd->rs_pin, GPIO_MODE_OUTPUT_PP);
+    GPIO_init(lcd->rw_gpio, lcd->rw_pin, GPIO_MODE_OUTPUT_PP);
+    GPIO_init(lcd->en_gpio, lcd->en_pin, GPIO_MODE_OUTPUT_PP);
     HD44780_set_data_mode(lcd, GPIO_MODE_OUTPUT_PP);
 
     HAL_GPIO_WritePin(lcd->rs_gpio, lcd->rs_pin, GPIO_PIN_RESET);
@@ -461,14 +292,14 @@ void HD44780_create_symbol(const HD44780 *lcd, uint8_t address, bool font_5x10, 
         HD44780_write_data(lcd, symbol[i]);
     }
 
-    // Fill remaining pixels with whitespace.
-    if (font_5x10)
-    {
-        for (uint8_t i = 0; i < 6; ++i)
-        {
-            HD44780_write_data(lcd, 0);
-        }
-    }
+// Fill remaining pixels with whitespace.
+     if (font_5x10)
+     {
+         for (uint8_t i = 0; i < 6; ++i)
+         {
+             HD44780_write_data(lcd, 0);
+         }
+     }
 
     HD44780_write_instruction(lcd, HD44780_CMD_SET_DDRAM_ADDRESS | ddram_address);
 }
@@ -513,4 +344,197 @@ void HD44780_put_str(const HD44780 *lcd, const char *str)
     {
         HD44780_put_char(lcd, str[i]);
     }
+}
+
+/*
+ * Internal function definitions
+ */
+
+static inline void GPIO_init(GPIO_TypeDef *gpio, uint16_t pin, uint32_t mode)
+{
+    GPIO_InitTypeDef GPIO_InitStruct = {.Pull = GPIO_NOPULL, .Speed = GPIO_SPEED_FREQ_HIGH, .Pin = pin, .Mode = mode};
+    HAL_GPIO_Init(gpio, &GPIO_InitStruct);
+}
+
+static void HD44780_set_data_mode(const HD44780 *lcd, uint32_t mode)
+{
+    GPIO_init(lcd->d7_gpio, lcd->d7_pin, mode);
+    GPIO_init(lcd->d6_gpio, lcd->d6_pin, mode);
+    GPIO_init(lcd->d5_gpio, lcd->d5_pin, mode);
+    GPIO_init(lcd->d4_gpio, lcd->d4_pin, mode);
+
+    if (lcd->interface_8_bit)
+    {
+        GPIO_init(lcd->d3_gpio, lcd->d3_pin, mode);
+        GPIO_init(lcd->d2_gpio, lcd->d2_pin, mode);
+        GPIO_init(lcd->d1_gpio, lcd->d1_pin, mode);
+        GPIO_init(lcd->d0_gpio, lcd->d0_pin, mode);
+    }
+}
+
+static uint8_t HD44780_pull_value(const HD44780 *lcd)
+{
+    HAL_GPIO_WritePin(lcd->en_gpio, lcd->en_pin, GPIO_PIN_SET);
+
+    // Data delay time = 360ns
+    // Enable rise/fall time = 25ns
+    // Total = 385ns
+    delay_ns(400);
+
+    uint8_t value = 0;
+
+    if (lcd->interface_8_bit)
+    {
+        value |= HAL_GPIO_ReadPin(lcd->d7_gpio, lcd->d7_pin) << 7;
+        value |= HAL_GPIO_ReadPin(lcd->d6_gpio, lcd->d6_pin) << 6;
+        value |= HAL_GPIO_ReadPin(lcd->d5_gpio, lcd->d5_pin) << 5;
+        value |= HAL_GPIO_ReadPin(lcd->d4_gpio, lcd->d4_pin) << 4;
+        value |= HAL_GPIO_ReadPin(lcd->d3_gpio, lcd->d3_pin) << 3;
+        value |= HAL_GPIO_ReadPin(lcd->d2_gpio, lcd->d2_pin) << 2;
+        value |= HAL_GPIO_ReadPin(lcd->d1_gpio, lcd->d1_pin) << 1;
+        value |= HAL_GPIO_ReadPin(lcd->d0_gpio, lcd->d0_pin) << 0;
+    }
+    else
+    {
+        value |= HAL_GPIO_ReadPin(lcd->d7_gpio, lcd->d7_pin) << 3;
+        value |= HAL_GPIO_ReadPin(lcd->d6_gpio, lcd->d6_pin) << 2;
+        value |= HAL_GPIO_ReadPin(lcd->d5_gpio, lcd->d5_pin) << 1;
+        value |= HAL_GPIO_ReadPin(lcd->d4_gpio, lcd->d4_pin) << 0;
+    }
+
+    HAL_GPIO_WritePin(lcd->en_gpio, lcd->en_pin, GPIO_PIN_RESET);
+
+    return value;
+}
+
+static void HD44780_push_value(const HD44780 *lcd, uint8_t byte)
+{
+    HAL_GPIO_WritePin(lcd->en_gpio, lcd->en_pin, GPIO_PIN_SET);
+
+    if (lcd->interface_8_bit)
+    {
+        HAL_GPIO_WritePin(lcd->d7_gpio, lcd->d7_pin, byte & (1 << 7) ? GPIO_PIN_SET : GPIO_PIN_RESET);
+        HAL_GPIO_WritePin(lcd->d6_gpio, lcd->d6_pin, byte & (1 << 6) ? GPIO_PIN_SET : GPIO_PIN_RESET);
+        HAL_GPIO_WritePin(lcd->d5_gpio, lcd->d5_pin, byte & (1 << 5) ? GPIO_PIN_SET : GPIO_PIN_RESET);
+        HAL_GPIO_WritePin(lcd->d4_gpio, lcd->d4_pin, byte & (1 << 4) ? GPIO_PIN_SET : GPIO_PIN_RESET);
+        HAL_GPIO_WritePin(lcd->d3_gpio, lcd->d3_pin, byte & (1 << 3) ? GPIO_PIN_SET : GPIO_PIN_RESET);
+        HAL_GPIO_WritePin(lcd->d2_gpio, lcd->d2_pin, byte & (1 << 2) ? GPIO_PIN_SET : GPIO_PIN_RESET);
+        HAL_GPIO_WritePin(lcd->d1_gpio, lcd->d1_pin, byte & (1 << 1) ? GPIO_PIN_SET : GPIO_PIN_RESET);
+        HAL_GPIO_WritePin(lcd->d0_gpio, lcd->d0_pin, byte & (1 << 0) ? GPIO_PIN_SET : GPIO_PIN_RESET);
+    }
+    else
+    {
+        HAL_GPIO_WritePin(lcd->d7_gpio, lcd->d7_pin, byte & (1 << 3) ? GPIO_PIN_SET : GPIO_PIN_RESET);
+        HAL_GPIO_WritePin(lcd->d6_gpio, lcd->d6_pin, byte & (1 << 2) ? GPIO_PIN_SET : GPIO_PIN_RESET);
+        HAL_GPIO_WritePin(lcd->d5_gpio, lcd->d5_pin, byte & (1 << 1) ? GPIO_PIN_SET : GPIO_PIN_RESET);
+        HAL_GPIO_WritePin(lcd->d4_gpio, lcd->d4_pin, byte & (1 << 0) ? GPIO_PIN_SET : GPIO_PIN_RESET);
+    }
+
+    // Data set-up time = 195ns
+    // Enable rise/fall time = 25ns
+    // Total = 220ns
+    delay_ns(240);
+
+    HAL_GPIO_WritePin(lcd->en_gpio, lcd->en_pin, GPIO_PIN_RESET);
+
+    // Address hold time = 20ns
+}
+
+static uint8_t HD44780_read_byte(const HD44780 *lcd)
+{
+    HAL_GPIO_WritePin(lcd->rw_gpio, lcd->rw_pin, GPIO_PIN_SET);
+    HAL_GPIO_WritePin(lcd->rs_gpio, lcd->rs_pin, GPIO_PIN_RESET);
+
+    // Address set-up time (RS, R/W to E) = 60ns
+
+    HD44780_set_data_mode(lcd, GPIO_MODE_INPUT);
+
+    uint8_t byte = 0;
+
+    if (lcd->interface_8_bit)
+    {
+        byte = HD44780_pull_value(lcd);
+    }
+    else
+    {
+        byte |= HD44780_pull_value(lcd) << 4;
+        byte |= HD44780_pull_value(lcd);
+    }
+
+    return byte;
+}
+
+static void HD44780_write_byte(const HD44780 *lcd, bool rs, uint8_t byte)
+{
+    HD44780_set_data_mode(lcd, GPIO_MODE_OUTPUT_PP);
+
+    HAL_GPIO_WritePin(lcd->rw_gpio, lcd->rw_pin, GPIO_PIN_RESET);
+    HAL_GPIO_WritePin(lcd->rs_gpio, lcd->rs_pin, rs);
+
+    // Address set-up time (RS, R/W to E) = 60ns
+
+    if (lcd->interface_8_bit)
+    {
+        HD44780_push_value(lcd, byte);
+    }
+    else
+    {
+        HD44780_push_value(lcd, byte >> 4);
+        HD44780_push_value(lcd, byte);
+    }
+
+    HD44780_await_busyflag(lcd);
+
+    // After execution of the CGRAM/DDRAM data write or read instruction,
+    // the RAM address counter is incremented or decremented by 1.
+    // The RAM address counter is updated after the busy flag turns off.
+    // Address counter update time = 4us
+    if (rs)
+    {
+        delay_us(5);
+    }
+}
+
+static void HD44780_write_init(const HD44780 *lcd, uint8_t byte)
+{
+    if (lcd->interface_8_bit)
+    {
+        HD44780_push_value(lcd, byte);
+    }
+    else
+    {
+        HD44780_push_value(lcd, byte >> 4);
+    }
+}
+
+static inline uint8_t HD44780_get_address(const HD44780 *lcd)
+{
+    return HD44780_read_byte(lcd) & ~(1 << HD44780_CMD_READ_BUSYFLAG_AND_ADDRESS);
+}
+
+static inline uint8_t HD44780_get_busyflag(const HD44780 *lcd)
+{
+    return HD44780_read_byte(lcd) >> HD44780_CMD_READ_BUSYFLAG_AND_ADDRESS & 1;
+}
+
+static inline void HD44780_write_instruction(const HD44780 *lcd, uint8_t byte)
+{
+    HD44780_write_byte(lcd, 0, byte);
+}
+
+static inline void HD44780_write_data(const HD44780 *lcd, uint8_t byte)
+{
+    HD44780_write_byte(lcd, 1, byte);
+}
+
+static inline uint8_t HD44780_get_current_line(const HD44780 *lcd)
+{
+    uint8_t address = HD44780_get_address(lcd);
+    return !lcd->single_line && address >= HD44780_SECOND_LINE_ADDRESS;
+}
+
+static inline void HD44780_await_busyflag(const HD44780 *lcd)
+{
+    while (HD44780_get_busyflag(lcd))
+        ;
 }
