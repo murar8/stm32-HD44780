@@ -16,5 +16,7 @@ var searchData=
   ['d6_5fpin_13',['d6_pin',['../struct_h_d44780.html#a4e5640d53a27bb581dd42b82a3af8560',1,'HD44780']]],
   ['d7_5fgpio_14',['d7_gpio',['../struct_h_d44780.html#a810bc3ea02500907722ed6abc7d3ca83',1,'HD44780']]],
   ['d7_5fpin_15',['d7_pin',['../struct_h_d44780.html#aef7b05670d9325a8fc079a94ab95ed92',1,'HD44780']]],
-  ['disable_5fdisplay_16',['disable_display',['../struct_h_d44780___config.html#ae8caacf8698c8fe0be984a6ec9a4e711',1,'HD44780_Config']]]
+  ['delay_5fms_16',['delay_ms',['../_h_d44780_8c.html#a389926e6490f1d3db0f0896e8b0f5f2e',1,'HD44780.c']]],
+  ['delay_5fus_17',['delay_us',['../_h_d44780_8c.html#af4f937c251678e98e4c41b4d58f232a5',1,'HD44780.c']]],
+  ['disable_5fdisplay_18',['disable_display',['../struct_h_d44780___config.html#ae8caacf8698c8fe0be984a6ec9a4e711',1,'HD44780_Config']]]
 ];

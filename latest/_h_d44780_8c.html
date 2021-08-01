@@ -63,6 +63,7 @@ $(function() {
 </div><!-- top -->
 <div class="header">
   <div class="summary">
+<a href="#define-members">Macros</a> &#124;
 <a href="#func-members">Functions</a>  </div>
   <div class="headertitle">
 <div class="title">HD44780.c File Reference</div>  </div>
@@ -73,6 +74,17 @@ $(function() {
 <a href="#details">More...</a></p>
 <div class="textblock"><code>#include &quot;<a class="el" href="_h_d44780_8h_source.html">HD44780.h</a>&quot;</code><br />
 </div><table class="memberdecls">
+<tr class="heading"><td colspan="2"><h2 class="groupheader"><a name="define-members"></a>
+Macros</h2></td></tr>
+<tr class="memitem:af4f937c251678e98e4c41b4d58f232a5"><td class="memItemLeft" align="right" valign="top"><a id="af4f937c251678e98e4c41b4d58f232a5"></a>
+#define&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="_h_d44780_8c.html#af4f937c251678e98e4c41b4d58f232a5">delay_us</a>(us)&#160;&#160;&#160;delay_ns(us * 1000)</td></tr>
+<tr class="memdesc:af4f937c251678e98e4c41b4d58f232a5"><td class="mdescLeft">&#160;</td><td class="mdescRight">Halt the program execution for the desired number of microseconds. <br /></td></tr>
+<tr class="separator:af4f937c251678e98e4c41b4d58f232a5"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a389926e6490f1d3db0f0896e8b0f5f2e"><td class="memItemLeft" align="right" valign="top"><a id="a389926e6490f1d3db0f0896e8b0f5f2e"></a>
+#define&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="_h_d44780_8c.html#a389926e6490f1d3db0f0896e8b0f5f2e">delay_ms</a>(ms)&#160;&#160;&#160;delay_ns(ms * 1000000)</td></tr>
+<tr class="memdesc:a389926e6490f1d3db0f0896e8b0f5f2e"><td class="mdescLeft">&#160;</td><td class="mdescRight">Halt the program execution for the desired number of milliseconds. <br /></td></tr>
+<tr class="separator:a389926e6490f1d3db0f0896e8b0f5f2e"><td class="memSeparator" colspan="2">&#160;</td></tr>
+</table><table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a name="func-members"></a>
 Functions</h2></td></tr>
 <tr class="memitem:aba0176a5b3175906388fc68b9ad7ed73"><td class="memItemLeft" align="right" valign="top">void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="_h_d44780_8c.html#aba0176a5b3175906388fc68b9ad7ed73">HD44780_init</a> (const <a class="el" href="struct_h_d44780.html">HD44780</a> *lcd)</td></tr>
@@ -212,7 +224,7 @@ Functions</h2></td></tr>
 </div><div class="memdoc">
 
 <p>Create a user defined character to display in the LCD. </p>
-<p>The controller memory can store up to 8 5x8 symbols, and up to 4 5x10 symbols. Please take into consideartion that 5x10 symbols needs 2 CGRAM slots, so after defining a 5x10 symbol at address n, next symbol should be defined at address n+2.</p>
+<p>The controller memory can store up to 8 5x8 symbols, and up to 4 5x10 symbols. Please take into consideration that 5x10 symbols needs 2 CGRAM slots, so after defining a 5x10 symbol at address n, next symbol should be defined at address n+2.</p>
 <dl class="params"><dt>Parameters</dt><dd>
   <table class="params">
     <tr><td class="paramname">lcd</td><td>Controller instance.</td></tr>
