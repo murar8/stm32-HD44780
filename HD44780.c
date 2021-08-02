@@ -2,7 +2,7 @@
  * @file HD44780.c %HD44780 peripheral library for stm32 microcontrollers. More information is available at the
  * project's home page: https://github.com/murar8/stm32-HD44780
  *
- * @version 0.1.2
+ * @version 0.1.3
  *
  * @author Lorenzo Murarotto <lnzmrr@gmail.com>
  *

@@ -2,7 +2,7 @@
  * @file HD44780_config.h %HD44780 peripheral library configuration. More information is available at the
  * project's home page: https://github.com/murar8/stm32-HD44780
  *
- * @version 0.1.2
+ * @version 0.1.3
  *
  * @author Lorenzo Murarotto <lnzmrr@gmail.com>
  *
